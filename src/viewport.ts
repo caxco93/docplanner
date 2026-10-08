@@ -91,16 +91,20 @@ export class Viewport {
     const visible =
       left >= MARGIN && top >= MARGIN && left + rect.w * zoom <= width - MARGIN && top + rect.h * zoom <= height - MARGIN;
     if (visible && !force) return;
-    const axis = (viewSize: number, start: number, size: number, pos: number) =>
-      size * zoom > viewSize - MARGIN * 2 ? MARGIN - start * zoom : pos;
-    this.goTo(
-      {
-        zoom,
-        x: axis(width, rect.x, rect.w, width / 2 - (rect.x + rect.w / 2) * zoom),
-        y: axis(height, rect.y, rect.h, height / 2 - (rect.y + rect.h / 2) * zoom),
-      },
-      animate,
-    );
+    this.goTo(this.frame(rect, zoom), animate);
+  }
+
+  /** Back to 100% zoom, framing `rect`. */
+  resetTo(rect: Rect, animate = true): void {
+    this.goTo(this.frame(rect, 1), animate);
+  }
+
+  /** The view that centres `rect` at `zoom`, or aligns its top/left edge if it does not fit. */
+  private frame(rect: Rect, zoom: number): View {
+    const { width, height } = this.el.getBoundingClientRect();
+    const axis = (viewSize: number, start: number, size: number) =>
+      size * zoom > viewSize - MARGIN * 2 ? MARGIN - start * zoom : (viewSize - size * zoom) / 2 - start * zoom;
+    return { zoom, x: axis(width, rect.x, rect.w), y: axis(height, rect.y, rect.h) };
   }
 
   private goTo(target: View, animate: boolean): void {

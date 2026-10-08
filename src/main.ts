@@ -14,7 +14,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <button id="zoom-out" title="Zoom out">−</button>
     <span id="zoom-label" class="zoom-label"></span>
     <button id="zoom-in" title="Zoom in">+</button>
-    <button id="fit">Fit</button>
+    <button id="reset-camera">Reset Camera</button>
     <button id="toggle-all"></button>
     <input id="file" type="file" accept="application/json,.json" hidden />
   </div>
@@ -144,7 +144,7 @@ $<HTMLInputElement>('file').addEventListener('change', (e) => {
 });
 $('zoom-in').addEventListener('click', () => viewport.zoomBy(1.25));
 $('zoom-out').addEventListener('click', () => viewport.zoomBy(0.8));
-$('fit').addEventListener('click', () => viewport.fit([...pages.values()].map((p) => p.rect())));
+$('reset-camera').addEventListener('click', () => viewport.resetTo(pages.get(store.data.rootId)!.rect()));
 
 $('toggle-all').addEventListener('click', () => {
   if (store.allOpen()) {
