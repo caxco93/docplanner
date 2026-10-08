@@ -2,7 +2,7 @@ import './style.css';
 import { Autocomplete } from './autocomplete.ts';
 import { PageView, type PageHost } from './editor.ts';
 import { Links } from './links.ts';
-import { createWorkspace, parseWorkspace, Store, type Workspace } from './model.ts';
+import { coreData, createWorkspace, parseWorkspace, Store, type Workspace } from './model.ts';
 import { Viewport } from './viewport.ts';
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
@@ -131,13 +131,9 @@ function showWorkspace(data: Workspace, fitToRoot: boolean): void {
   refreshToolbar();
 }
 
-function serializeWorkspace(): string {
-  store.data.view = { ...viewport.view };
-  return JSON.stringify(store.data, null, 2);
-}
-
 function save(): void {
-  const blob = new Blob([serializeWorkspace()], { type: 'application/json' });
+  store.data.view = { ...viewport.view };
+  const blob = new Blob([JSON.stringify(store.data, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'docplanner.json';
@@ -163,7 +159,7 @@ function showToast(message: string, kind: 'success' | 'error'): void {
 
 async function copyToClipboard(): Promise<void> {
   try {
-    await navigator.clipboard.writeText(serializeWorkspace());
+    await navigator.clipboard.writeText(JSON.stringify(coreData(store.data), null, 2));
     showToast('Copied to clipboard', 'success');
   } catch (err) {
     showToast(`Could not copy: ${err instanceof Error ? err.message : err}`, 'error');
