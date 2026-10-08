@@ -6,6 +6,7 @@ A DOM-based document canvas built with Vite and vanilla TypeScript. Write on A4 
 
 - A4 pages that flow onto further sheets, with a page counter and arrows
 - `@Name` tags, highlighted like links; double-click to open the tagged page
+- Typing `@` opens fuzzy-searched suggestions, closest match first (arrows to move, Enter or Tab to accept, Esc to dismiss)
 - Arrows from each mention to the page it points at
 - Pan and zoom over the whole canvas using CSS 3D transforms
   - drag the background, or press space and drag within 500ms to pan over a page
