@@ -30,6 +30,8 @@ export interface View {
 export interface Workspace {
   version: 1;
   rootId: string;
+  /** Pages shrink to their text (up to one A4 sheet) instead of always being a full sheet. */
+  fitContents: boolean;
   documents: Record<string, DocRecord>;
   relationships: Relationship[];
   view: View;
@@ -145,6 +147,7 @@ export function createWorkspace(): Workspace {
   const store = new Store({
     version: 1,
     rootId: '',
+    fitContents: false,
     documents: {},
     relationships: [],
     view: { x: 0, y: 0, zoom: 1 },
@@ -205,5 +208,5 @@ export function parseWorkspace(raw: string): Workspace {
 
   const v = isRecord(json.view) ? json.view : {};
   const view = { x: finite(v.x, 0), y: finite(v.y, 0), zoom: finite(v.zoom, 1) };
-  return { version: 1, rootId, documents, relationships, view };
+  return { version: 1, rootId, fitContents: json.fitContents === true, documents, relationships, view };
 }

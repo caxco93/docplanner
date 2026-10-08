@@ -290,7 +290,11 @@ export class PageView {
       if (this.clip.scrollLeft !== index * step) this.clip.scrollLeft = index * step;
       this.updatePager();
     });
-    new ResizeObserver(() => this.updatePager()).observe(this.clip);
+    // The clip's size changes with the text in "fit contents" mode, which moves the arrows too.
+    new ResizeObserver(() => {
+      this.updatePager();
+      this.host.layoutChanged();
+    }).observe(this.clip);
   }
 
   private sheet(): { index: number; count: number; step: number } {
