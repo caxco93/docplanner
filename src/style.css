@@ -84,11 +84,19 @@ body,
 
 .page {
   --inner: 642px; /* one column of text, exactly one sheet wide */
+  --sheet-h: 1123px; /* A4 at 96dpi */
+  --grip-h: 34px;
+  --pad-top: 44px;
+  --title-h: 48px;
+  --title-gap: 16px;
+  --pager-h: 64px;
+  /* Height of the text area on a full sheet. */
+  --body-h: calc(var(--sheet-h) - var(--grip-h) - var(--pad-top) - var(--title-h) - var(--title-gap) - var(--pager-h));
   position: absolute;
   top: 0;
   left: 0;
   width: 794px; /* A4 at 96dpi */
-  height: 1123px;
+  height: var(--sheet-h);
   background: #fff;
   box-shadow:
     0 1px 3px rgba(0, 0, 0, 0.12),
@@ -113,7 +121,7 @@ body,
 
 .grip {
   flex: none;
-  height: 34px;
+  height: var(--grip-h);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -159,7 +167,8 @@ body,
   font-weight: 700;
   line-height: 1.2;
   flex: none;
-  margin-bottom: 24px;
+  height: var(--title-h);
+  margin-bottom: var(--title-gap);
   width: 100%;
   background: none;
   color: inherit;
@@ -170,7 +179,7 @@ body,
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding: 44px 76px 0;
+  padding: var(--pad-top) 76px 0;
 }
 
 .page-clip {
@@ -197,9 +206,26 @@ body,
   column-fill: auto;
 }
 
+.world.fit-contents .page {
+  height: auto;
+}
+
+.world.fit-contents .page-main,
+.world.fit-contents .page-clip {
+  flex: none;
+}
+
+/* The text area grows with its content up to a full sheet; more text overflows into extra sheets. */
+.world.fit-contents .page-body {
+  position: static;
+  height: auto;
+  min-height: 120px;
+  max-height: var(--body-h);
+}
+
 .pager {
   flex: none;
-  height: 64px;
+  height: var(--pager-h);
   display: flex;
   align-items: center;
   justify-content: center;

@@ -12,6 +12,7 @@ A DOM-based document canvas built with Vite and vanilla TypeScript. Write on A4 
   - drag the background, or press space and drag within 500ms to pan over a page
   - scroll to pan, pinch or ctrl/cmd + scroll to zoom
 - Expand All / Contract All
+- Fit contents: pages shrink to their text (up to one A4 sheet); toggle back with Display as A4
 - Save and load as JSON: documents are stored flat, with a separate relationships list
 
 ## Development

@@ -16,6 +16,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <button id="zoom-in" title="Zoom in">+</button>
     <button id="reset-camera">Reset Camera</button>
     <button id="toggle-all"></button>
+    <button id="fit-contents"></button>
     <input id="file" type="file" accept="application/json,.json" hidden />
   </div>
   <div id="viewport" class="viewport">
@@ -42,6 +43,13 @@ const links = new Links(document.getElementById('link-layer') as unknown as SVGG
 const viewport = new Viewport(viewportEl, worldEl, store.data.view, (view) => {
   zoomLabel.textContent = `${Math.round(view.zoom * 100)}%`;
 });
+
+function applyDisplayMode(): void {
+  const { fitContents } = store.data;
+  worldEl.classList.toggle('fit-contents', fitContents);
+  $('fit-contents').textContent = fitContents ? 'Display as A4' : 'Fit contents';
+  links.schedule();
+}
 
 function refreshToolbar(): void {
   $('toggle-all').textContent = store.allOpen() ? 'Contract All' : 'Expand All';
@@ -111,6 +119,7 @@ function showWorkspace(data: Workspace, fitToRoot: boolean): void {
   store = new Store(data);
   for (const doc of store.all()) if (doc.open) addPage(doc.id);
   viewport.setView(data.view);
+  applyDisplayMode();
   if (fitToRoot) viewport.reveal(pages.get(data.rootId)!.rect(), true, false);
   links.schedule();
   refreshToolbar();
@@ -146,6 +155,10 @@ $('zoom-in').addEventListener('click', () => viewport.zoomBy(1.25));
 $('zoom-out').addEventListener('click', () => viewport.zoomBy(0.8));
 $('reset-camera').addEventListener('click', () => viewport.resetTo(pages.get(store.data.rootId)!.rect()));
 
+$('fit-contents').addEventListener('click', () => {
+  store.data.fitContents = !store.data.fitContents;
+  applyDisplayMode();
+});
 $('toggle-all').addEventListener('click', () => {
   if (store.allOpen()) {
     store.contractAll();
