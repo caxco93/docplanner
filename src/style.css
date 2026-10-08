@@ -559,3 +559,13 @@ body.file-dragging::after {
   opacity: 0.5;
   cursor: default;
 }
+
+.doc-name {
+  max-width: 180px;
+  margin-right: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--muted);
+}

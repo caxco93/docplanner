@@ -39,12 +39,21 @@ async function run<T>(store: string, mode: IDBTransactionMode, action: (s: IDBOb
   }
 }
 
-export async function loadAutosave(): Promise<string | undefined> {
-  return run<string | undefined>(AUTOSAVE, 'readonly', (s) => s.get(CURRENT));
+export interface Autosave {
+  /** The working copy, serialized like an exported file. */
+  data: string;
+  /** The named save this copy came from, or '' if it has none yet. */
+  saveName: string;
+  /** What the workspace looked like when it was last saved, to tell whether it has unsaved changes. */
+  baseline: string;
 }
 
-export async function writeAutosave(data: string): Promise<void> {
-  await run(AUTOSAVE, 'readwrite', (s) => s.put(data, CURRENT));
+export async function loadAutosave(): Promise<Autosave | undefined> {
+  return run<Autosave | undefined>(AUTOSAVE, 'readonly', (s) => s.get(CURRENT));
+}
+
+export async function writeAutosave(autosave: Autosave): Promise<void> {
+  await run(AUTOSAVE, 'readwrite', (s) => s.put(autosave, CURRENT));
 }
 
 /** All named saves, most recent first. */
