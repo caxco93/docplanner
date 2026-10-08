@@ -1,4 +1,5 @@
 import './style.css';
+import { Autocomplete } from './autocomplete.ts';
 import { PageView, type PageHost } from './editor.ts';
 import { Links } from './links.ts';
 import { createWorkspace, parseWorkspace, Store, type Workspace } from './model.ts';
@@ -50,6 +51,7 @@ const host: PageHost = {
   get store() {
     return store;
   },
+  autocomplete: new Autocomplete(),
   zoom: () => viewport.view.zoom,
   openMention(fromId, targetId) {
     const target = store.get(targetId);

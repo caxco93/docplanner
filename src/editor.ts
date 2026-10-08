@@ -1,7 +1,21 @@
+import type { Autocomplete, Suggestion } from './autocomplete.ts';
+import { rank } from './fuzzy.ts';
 import type { DocRecord, Rect, Segment, Store } from './model.ts';
 
 /** `@name` not glued to a preceding word character (so e-mail addresses are left alone). */
 const MENTION_PATTERN = /(?<![\p{L}\p{N}_@])@([\p{L}\p{N}_-]+)/gu;
+
+/** An `@` with a (possibly empty) partial name, ending at the caret. */
+const TRIGGER_PATTERN = /(?<![\p{L}\p{N}_@])@([\p{L}\p{N}_-]*)$/u;
+const MAX_SUGGESTIONS = 8;
+
+interface Trigger {
+  node: Text;
+  /** Offset of the `@`, and of the caret, within `node`. */
+  start: number;
+  end: number;
+  query: string;
+}
 
 const mentionLabel = (title: string) => `@${title.trim() || 'Untitled'}`;
 
@@ -64,6 +78,7 @@ export function serialize(root: HTMLElement): Segment[] {
 
 export interface PageHost {
   readonly store: Store;
+  readonly autocomplete: Autocomplete;
   zoom(): number;
   openMention(fromId: string, targetId: string): void;
   closePage(id: string): void;
@@ -81,6 +96,8 @@ export class PageView {
   private readonly count: HTMLElement;
   private readonly prev: HTMLButtonElement;
   private readonly next: HTMLButtonElement;
+  /** Set when the suggestions were closed with Escape; cleared by the next keystroke. */
+  private suggestionsDismissed = false;
 
   constructor(
     readonly doc: DocRecord,
@@ -197,10 +214,19 @@ export class PageView {
   private bindBody(): void {
     const { body } = this;
     body.addEventListener('input', () => {
+      this.suggestionsDismissed = false;
       this.convertMentions(true);
       this.commit();
+      this.updateSuggestions();
     });
+    body.addEventListener('keydown', (e) => this.handleSuggestionKey(e));
+    // Caret moves that are not typing (arrows, clicks) can enter or leave an `@name`.
+    body.addEventListener('keyup', (e) => {
+      if (!['ArrowUp', 'ArrowDown', 'Enter', 'Tab', 'Escape'].includes(e.key)) this.updateSuggestions();
+    });
+    body.addEventListener('click', () => this.updateSuggestions());
     body.addEventListener('blur', () => {
+      this.host.autocomplete.hide();
       this.convertMentions(false);
       this.commit();
     });
@@ -281,6 +307,71 @@ export class PageView {
     this.count.textContent = `${index + 1} / ${count}`;
     this.prev.disabled = index === 0;
     this.next.disabled = index >= count - 1;
+  }
+
+  private findTrigger(): Trigger | null {
+    const sel = window.getSelection();
+    const node = sel?.anchorNode;
+    if (!sel?.isCollapsed || !(node instanceof Text) || !this.body.contains(node)) return null;
+    if (node.parentElement?.closest('.mention')) return null;
+    const end = sel.anchorOffset;
+    const match = TRIGGER_PATTERN.exec(node.data.slice(0, end));
+    return match ? { node, start: match.index, end, query: match[1] } : null;
+  }
+
+  private updateSuggestions(): void {
+    const { autocomplete } = this.host;
+    const trigger = this.suggestionsDismissed ? null : this.findTrigger();
+    if (!trigger) return autocomplete.hide();
+
+    const others = this.host.store.all().filter((d) => d.id !== this.doc.id);
+    const items: Suggestion[] = rank(trigger.query, others, (d) => d.title)
+      .slice(0, MAX_SUGGESTIONS)
+      .map((r) => ({ id: r.item.id, title: r.item.title, indices: r.indices }));
+    const exists = this.host.store.all().some((d) => d.title.trim().toLowerCase() === trigger.query.toLowerCase());
+    if (trigger.query && !exists) items.push({ id: null, title: trigger.query, indices: [] });
+
+    const at = document.createRange();
+    at.setStart(trigger.node, trigger.start);
+    at.setEnd(trigger.node, trigger.start + 1);
+    autocomplete.show(at.getBoundingClientRect(), items, (s) => this.acceptSuggestion(s));
+  }
+
+  private handleSuggestionKey(e: KeyboardEvent): void {
+    const { autocomplete } = this.host;
+    if (!autocomplete.isOpen()) return;
+    const actions: Record<string, () => void> = {
+      ArrowDown: () => autocomplete.move(1),
+      ArrowUp: () => autocomplete.move(-1),
+      Enter: () => autocomplete.pickActive(),
+      Tab: () => autocomplete.pickActive(),
+      Escape: () => {
+        this.suggestionsDismissed = true;
+        autocomplete.hide();
+      },
+    };
+    const action = actions[e.key];
+    if (!action || e.isComposing) return;
+    e.preventDefault();
+    action();
+  }
+
+  /** Replaces the `@query` before the caret with a tag for the chosen page, followed by a space. */
+  private acceptSuggestion(suggestion: Suggestion): void {
+    const trigger = this.findTrigger();
+    this.host.autocomplete.hide();
+    if (!trigger) return;
+    const target = suggestion.id
+      ? this.host.store.get(suggestion.id)
+      : this.host.store.resolveMention(suggestion.title);
+    if (!target) return;
+
+    const after = trigger.node.splitText(trigger.end);
+    trigger.node.splitText(trigger.start).replaceWith(createMention(target.id, target.title));
+    if (!/^\s/.test(after.data)) after.insertData(0, ' ');
+    window.getSelection()?.collapse(after, 1);
+    this.body.focus();
+    this.commit();
   }
 
   private commit(): void {
