@@ -367,8 +367,14 @@ body,
 }
 
 
-.toolbar button svg {
-  display: block;
+.toolbar button.accent {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.toolbar button.accent:hover {
+  background: #d0e0ff;
 }
 
 .toast {

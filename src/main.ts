@@ -9,12 +9,6 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <div class="toolbar">
     <strong class="brand">Doc Planner</strong>
     <button id="save">Save</button>
-    <button id="copy" title="Copy to clipboard" aria-label="Copy to clipboard">
-      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <rect x="9" y="9" width="11" height="11" rx="2" />
-        <path d="M5 15V6a2 2 0 0 1 2-2h9" />
-      </svg>
-    </button>
     <button id="load">Load</button>
     <span class="sep"></span>
     <button id="zoom-out" title="Zoom out">−</button>
@@ -23,6 +17,8 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <button id="reset-camera">Reset Camera</button>
     <button id="toggle-all"></button>
     <button id="fit-contents"></button>
+    <span class="sep"></span>
+    <button id="copy" class="accent" title="Copy the pages and relationships to the clipboard">Copy for Agent</button>
     <input id="file" type="file" accept="application/json,.json" hidden />
   </div>
   <div id="viewport" class="viewport">
