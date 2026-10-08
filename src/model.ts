@@ -143,6 +143,14 @@ export class Store {
   }
 }
 
+/** The workspace without anything about how it is displayed: just documents, their content and relationships. */
+export function coreData(ws: Workspace) {
+  const documents = Object.fromEntries(
+    Object.entries(ws.documents).map(([id, d]) => [id, { id: d.id, title: d.title, content: d.content }]),
+  );
+  return { version: ws.version, rootId: ws.rootId, documents, relationships: ws.relationships };
+}
+
 export function createWorkspace(): Workspace {
   const store = new Store({
     version: 1,

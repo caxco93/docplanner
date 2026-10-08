@@ -2,7 +2,7 @@ import './style.css';
 import { Autocomplete } from './autocomplete.ts';
 import { PageView, type PageHost } from './editor.ts';
 import { Links } from './links.ts';
-import { createWorkspace, parseWorkspace, Store, type Workspace } from './model.ts';
+import { coreData, createWorkspace, parseWorkspace, Store, type Workspace } from './model.ts';
 import { Viewport } from './viewport.ts';
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
@@ -17,6 +17,8 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <button id="reset-camera">Reset Camera</button>
     <button id="toggle-all"></button>
     <button id="fit-contents"></button>
+    <span class="sep"></span>
+    <button id="copy" class="accent" title="Copy the pages and relationships to the clipboard">Copy for Agent</button>
     <input id="file" type="file" accept="application/json,.json" hidden />
   </div>
   <div id="viewport" class="viewport">
@@ -135,6 +137,31 @@ function save(): void {
   URL.revokeObjectURL(a.href);
 }
 
+let toastTimer: number | undefined;
+
+function showToast(message: string, kind: 'success' | 'error'): void {
+  let toast = document.getElementById('toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'toast';
+    toast.setAttribute('role', 'status');
+    document.body.append(toast);
+  }
+  toast.textContent = message;
+  toast.className = `toast ${kind} visible`;
+  clearTimeout(toastTimer);
+  toastTimer = window.setTimeout(() => toast.classList.remove('visible'), 2000);
+}
+
+async function copyToClipboard(): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(JSON.stringify(coreData(store.data), null, 2));
+    showToast('Copied to clipboard', 'success');
+  } catch (err) {
+    showToast(`Could not copy: ${err instanceof Error ? err.message : err}`, 'error');
+  }
+}
+
 async function load(file: File): Promise<void> {
   try {
     showWorkspace(parseWorkspace(await file.text()), false);
@@ -144,6 +171,7 @@ async function load(file: File): Promise<void> {
 }
 
 $('save').addEventListener('click', save);
+$('copy').addEventListener('click', () => void copyToClipboard());
 $('load').addEventListener('click', () => $('file').click());
 $<HTMLInputElement>('file').addEventListener('change', (e) => {
   const input = e.target as HTMLInputElement;
