@@ -2,8 +2,8 @@ import './style.css';
 import { Autocomplete } from './autocomplete.ts';
 import { PageView, type PageHost } from './editor.ts';
 import { Links } from './links.ts';
-import { pickSave } from './saves-dialog.ts';
-import { hasSave, loadAutosave, putSave, writeAutosave } from './storage.ts';
+import { askSaveName, pickSave } from './saves-dialog.ts';
+import { loadAutosave, putSave, writeAutosave } from './storage.ts';
 import { coreData, createWorkspace, parseWorkspace, Store, type Workspace } from './model.ts';
 import { Viewport } from './viewport.ts';
 
@@ -182,10 +182,9 @@ async function importFile(file: File): Promise<void> {
 let saveName = '';
 
 async function saveLocally(): Promise<void> {
-  const name = prompt('Save as:', saveName)?.trim();
+  const name = await askSaveName(saveName);
   if (!name) return;
   try {
-    if (name !== saveName && (await hasSave(name)) && !confirm(`Overwrite the save "${name}"?`)) return;
     await putSave({ name, savedAt: Date.now(), data: serializeWorkspace() });
     saveName = name;
     showToast(`Saved "${name}"`, 'success');

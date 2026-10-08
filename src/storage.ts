@@ -57,10 +57,6 @@ export async function putSave(entry: SaveEntry): Promise<void> {
   await run(SAVES, 'readwrite', (s) => s.put(entry));
 }
 
-export async function hasSave(name: string): Promise<boolean> {
-  return (await run(SAVES, 'readonly', (s) => s.getKey(name))) !== undefined;
-}
-
 export async function deleteSave(name: string): Promise<void> {
   await run(SAVES, 'readwrite', (s) => s.delete(name));
 }
