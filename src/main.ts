@@ -9,6 +9,12 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <div class="toolbar">
     <strong class="brand">Doc Planner</strong>
     <button id="save">Save</button>
+    <button id="copy" title="Copy to clipboard" aria-label="Copy to clipboard">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="9" y="9" width="11" height="11" rx="2" />
+        <path d="M5 15V6a2 2 0 0 1 2-2h9" />
+      </svg>
+    </button>
     <button id="load">Load</button>
     <span class="sep"></span>
     <button id="zoom-out" title="Zoom out">−</button>
@@ -125,14 +131,43 @@ function showWorkspace(data: Workspace, fitToRoot: boolean): void {
   refreshToolbar();
 }
 
-function save(): void {
+function serializeWorkspace(): string {
   store.data.view = { ...viewport.view };
-  const blob = new Blob([JSON.stringify(store.data, null, 2)], { type: 'application/json' });
+  return JSON.stringify(store.data, null, 2);
+}
+
+function save(): void {
+  const blob = new Blob([serializeWorkspace()], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'docplanner.json';
   a.click();
   URL.revokeObjectURL(a.href);
+}
+
+let toastTimer: number | undefined;
+
+function showToast(message: string, kind: 'success' | 'error'): void {
+  let toast = document.getElementById('toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'toast';
+    toast.setAttribute('role', 'status');
+    document.body.append(toast);
+  }
+  toast.textContent = message;
+  toast.className = `toast ${kind} visible`;
+  clearTimeout(toastTimer);
+  toastTimer = window.setTimeout(() => toast.classList.remove('visible'), 2000);
+}
+
+async function copyToClipboard(): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(serializeWorkspace());
+    showToast('Copied to clipboard', 'success');
+  } catch (err) {
+    showToast(`Could not copy: ${err instanceof Error ? err.message : err}`, 'error');
+  }
 }
 
 async function load(file: File): Promise<void> {
@@ -144,6 +179,7 @@ async function load(file: File): Promise<void> {
 }
 
 $('save').addEventListener('click', save);
+$('copy').addEventListener('click', () => void copyToClipboard());
 $('load').addEventListener('click', () => $('file').click());
 $<HTMLInputElement>('file').addEventListener('change', (e) => {
   const input = e.target as HTMLInputElement;
