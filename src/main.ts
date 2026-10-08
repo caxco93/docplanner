@@ -2,6 +2,8 @@ import './style.css';
 import { Autocomplete } from './autocomplete.ts';
 import { PageView, type PageHost } from './editor.ts';
 import { Links } from './links.ts';
+import { pickSave } from './saves-dialog.ts';
+import { hasSave, loadAutosave, putSave, writeAutosave } from './storage.ts';
 import { coreData, createWorkspace, parseWorkspace, Store, type Workspace } from './model.ts';
 import { Viewport } from './viewport.ts';
 
@@ -19,6 +21,9 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <button id="fit-contents"></button>
     <span class="sep"></span>
     <button id="copy" class="accent" title="Copy the pages and relationships to the clipboard">Copy for Agent</button>
+    <span class="sep"></span>
+    <button id="export" title="Download the workspace as a file">Export</button>
+    <button id="import" title="Open a workspace file">Import</button>
     <input id="file" type="file" accept="application/json,.json" hidden />
   </div>
   <div id="viewport" class="viewport">
@@ -127,9 +132,13 @@ function showWorkspace(data: Workspace, fitToRoot: boolean): void {
   refreshToolbar();
 }
 
-function save(): void {
+function serializeWorkspace(): string {
   store.data.view = { ...viewport.view };
-  const blob = new Blob([JSON.stringify(store.data, null, 2)], { type: 'application/json' });
+  return JSON.stringify(store.data, null, 2);
+}
+
+function exportFile(): void {
+  const blob = new Blob([serializeWorkspace()], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'docplanner.json';
@@ -162,22 +171,103 @@ async function copyToClipboard(): Promise<void> {
   }
 }
 
-async function load(file: File): Promise<void> {
+async function importFile(file: File): Promise<void> {
   try {
     showWorkspace(parseWorkspace(await file.text()), false);
   } catch (err) {
-    alert(`Could not load file: ${err instanceof Error ? err.message : err}`);
+    alert(`Could not import file: ${err instanceof Error ? err.message : err}`);
   }
 }
 
-$('save').addEventListener('click', save);
+let saveName = '';
+
+async function saveLocally(): Promise<void> {
+  const name = prompt('Save as:', saveName)?.trim();
+  if (!name) return;
+  try {
+    if (name !== saveName && (await hasSave(name)) && !confirm(`Overwrite the save "${name}"?`)) return;
+    await putSave({ name, savedAt: Date.now(), data: serializeWorkspace() });
+    saveName = name;
+    showToast(`Saved "${name}"`, 'success');
+  } catch (err) {
+    showToast(`Could not save: ${err instanceof Error ? err.message : err}`, 'error');
+  }
+}
+
+async function loadLocally(): Promise<void> {
+  try {
+    const entry = await pickSave();
+    if (!entry) return;
+    showWorkspace(parseWorkspace(entry.data), false);
+    saveName = entry.name;
+  } catch (err) {
+    showToast(`Could not load: ${err instanceof Error ? err.message : err}`, 'error');
+  }
+}
+
+/** Keeps the working copy in IndexedDB so the next visit resumes where this one left off. */
+function startAutosave(): void {
+  let last = serializeWorkspace();
+  const flush = () => {
+    const current = serializeWorkspace();
+    if (current === last) return;
+    last = current;
+    void writeAutosave(current).catch((err) => console.error('Autosave failed', err));
+  };
+  setInterval(flush, 1000);
+  addEventListener('pagehide', flush);
+  document.addEventListener('visibilitychange', () => document.hidden && flush());
+}
+
+async function restoreAutosave(): Promise<boolean> {
+  try {
+    const saved = await loadAutosave();
+    if (!saved) return false;
+    showWorkspace(parseWorkspace(saved), false);
+    return true;
+  } catch (err) {
+    console.error('Could not restore the autosaved workspace', err);
+    return false;
+  }
+}
+
+// Dropping a workspace file anywhere on the page imports it.
+const hasFiles = (e: DragEvent) => e.dataTransfer?.types.includes('Files') ?? false;
+let dragDepth = 0;
+document.addEventListener('dragenter', (e) => {
+  if (!hasFiles(e)) return;
+  dragDepth++;
+  document.body.classList.add('file-dragging');
+});
+document.addEventListener('dragleave', (e) => {
+  if (!hasFiles(e)) return;
+  if (--dragDepth <= 0) {
+    dragDepth = 0;
+    document.body.classList.remove('file-dragging');
+  }
+});
+document.addEventListener('dragover', (e) => {
+  if (hasFiles(e)) e.preventDefault();
+});
+document.addEventListener('drop', (e) => {
+  if (!hasFiles(e)) return;
+  e.preventDefault();
+  dragDepth = 0;
+  document.body.classList.remove('file-dragging');
+  const file = e.dataTransfer?.files[0];
+  if (file) void importFile(file);
+});
+
+$('save').addEventListener('click', () => void saveLocally());
+$('load').addEventListener('click', () => void loadLocally());
+$('export').addEventListener('click', exportFile);
 $('copy').addEventListener('click', () => void copyToClipboard());
-$('load').addEventListener('click', () => $('file').click());
+$('import').addEventListener('click', () => $('file').click());
 $<HTMLInputElement>('file').addEventListener('change', (e) => {
   const input = e.target as HTMLInputElement;
   const file = input.files?.[0];
   input.value = '';
-  if (file) void load(file);
+  if (file) void importFile(file);
 });
 $('zoom-in').addEventListener('click', () => viewport.zoomBy(1.25));
 $('zoom-out').addEventListener('click', () => viewport.zoomBy(0.8));
@@ -200,3 +290,4 @@ $('toggle-all').addEventListener('click', () => {
 });
 
 showWorkspace(store.data, true);
+void restoreAutosave().then(startAutosave);
