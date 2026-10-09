@@ -3,7 +3,7 @@
 **A spatial canvas for writing connected documents.** Write on A4 pages, tag other pages with `@Name`, and double-click a tag to open that page beside the current one, joined by an arrow.
 
 <p align="center">
-  <img src="docs/demo.gif" alt="Demo: double-clicking a tag to open its page, tagging pages with fuzzy @ suggestions, panning, zooming out to every page and resetting the camera" width="760">
+  <img src="docs/demo.gif" alt="Demo: double-clicking a tag to open its page, creating pages from tags, fuzzy @ suggestions, panning and resetting the camera" width="760">
 </p>
 
 Built with [Vite](https://vite.dev) and vanilla TypeScript. No framework, no runtime dependencies.
