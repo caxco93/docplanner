@@ -24,3 +24,11 @@ npm run dev
 ```sh
 npm run build
 ```
+
+## Deployment
+
+Coolify builds the `Dockerfile` (Vite build served by nginx). Bunny CDN sits in front as a pull zone so most requests never reach the VPS.
+
+- `nginx.conf` sends `Cache-Control: public, max-age=31536000, immutable` for the fingerprinted files in `/assets/`, and `no-cache` for `index.html` so a new deploy is picked up straight away.
+- Bunny pull zone: set the origin URL to the Coolify domain, leave caching on "Respect origin Cache-Control" (the default), and point the app's domain at the pull zone with a CNAME.
+- No purge is needed after a deploy, since new builds produce new asset names and `index.html` is always revalidated.
