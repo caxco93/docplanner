@@ -33,6 +33,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <button id="export" title="Download the workspace as a file">Export</button>
     <button id="import" title="Open a workspace file">Import</button>
     <input id="file" type="file" accept="application/json,.json" hidden />
+    <button id="theme" class="theme-toggle"></button>
   </div>
   <div id="viewport" class="viewport">
     <div id="world" class="world">
@@ -348,6 +349,20 @@ document.addEventListener('pointerdown', (e) => {
 });
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') setMenuOpen(false);
+});
+
+function applyTheme(theme: 'light' | 'dark'): void {
+  document.documentElement.dataset.theme = theme;
+  $('theme').textContent = theme === 'dark' ? '☀ Light' : '☾ Dark';
+  $('theme').title = `Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`;
+}
+applyTheme(document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light');
+$('theme').addEventListener('click', () => {
+  const theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+  applyTheme(theme);
+  try {
+    localStorage.setItem('theme', theme);
+  } catch {}
 });
 
 $('new').addEventListener('click', newWorkspace);
