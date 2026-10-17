@@ -569,3 +569,17 @@ body.file-dragging::after {
   font-size: 13px;
   color: var(--muted);
 }
+
+.minimap {
+  position: fixed;
+  z-index: 10;
+  right: 16px;
+  bottom: 16px;
+  width: 200px;
+  height: 140px;
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+  touch-action: none;
+}

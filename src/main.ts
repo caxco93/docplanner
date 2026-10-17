@@ -1,6 +1,7 @@
 import './style.css';
 import { Autocomplete } from './autocomplete.ts';
 import { PageView, type PageHost } from './editor.ts';
+import { Minimap } from './minimap.ts';
 import { Links } from './links.ts';
 import { askSaveName, pickSave } from './saves-dialog.ts';
 import { loadAutosave, putSave, writeAutosave } from './storage.ts';
@@ -49,15 +50,29 @@ const zoomLabel = $('zoom-label');
 let store = new Store(createWorkspace());
 const pages = new Map<string, PageView>();
 const links = new Links(document.getElementById('link-layer') as unknown as SVGGElement, () => store, pages);
+const minimap: Minimap = new Minimap({
+  rects: () => [...pages.values()].map((p) => p.rect()),
+  view: () => viewport.view,
+  size: () => viewportEl.getBoundingClientRect(),
+  centerOn: (x, y) => viewport.centerOn(x, y),
+});
 const viewport = new Viewport(viewportEl, worldEl, store.data.view, (view) => {
   zoomLabel.textContent = `${Math.round(view.zoom * 100)}%`;
+  minimap.schedule();
 });
+document.getElementById('app')!.append(minimap.el);
+
+/** Redraws everything derived from the pages' positions and sizes. */
+function relayout(): void {
+  links.schedule();
+  minimap.schedule();
+}
 
 function applyDisplayMode(): void {
   const { fitContents } = store.data;
   worldEl.classList.toggle('fit-contents', fitContents);
   $('fit-contents').textContent = fitContents ? 'Display as A4' : 'Fit contents';
-  links.schedule();
+  relayout();
 }
 
 function refreshToolbar(): void {
@@ -84,7 +99,7 @@ const host: PageHost = {
     const page = addPage(target.id);
     viewport.reveal(page.rect(), false);
     page.flash();
-    links.schedule();
+    relayout();
     refreshToolbar();
   },
   closePage(id) {
@@ -93,16 +108,16 @@ const host: PageHost = {
     page.el.remove();
     pages.delete(id);
     page.doc.open = false;
-    links.schedule();
+    relayout();
     refreshToolbar();
   },
   titleChanged() {
     pages.forEach((p) => p.refreshMentions());
-    links.schedule();
+    relayout();
   },
-  movePage: () => links.schedule(),
+  movePage: () => relayout(),
   layoutChanged() {
-    links.schedule();
+    relayout();
     refreshToolbar();
   },
 };
@@ -118,7 +133,7 @@ function addPage(id: string): PageView {
 function syncPages(): void {
   for (const [id, page] of pages) if (!store.get(id)?.open) host.closePage(page.doc.id);
   for (const doc of store.all()) if (doc.open && !pages.has(doc.id)) addPage(doc.id);
-  links.schedule();
+  relayout();
   refreshToolbar();
 }
 
@@ -130,7 +145,7 @@ function showWorkspace(data: Workspace, fitToRoot: boolean): void {
   viewport.setView(data.view);
   applyDisplayMode();
   if (fitToRoot) viewport.reveal(pages.get(data.rootId)!.rect(), true, false);
-  links.schedule();
+  relayout();
   refreshToolbar();
 }
 

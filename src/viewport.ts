@@ -59,6 +59,15 @@ export class Viewport {
     this.apply();
   }
 
+  /** Pans (keeping the zoom) so that the given world point is at the centre of the screen. */
+  centerOn(worldX: number, worldY: number): void {
+    const { width, height } = this.el.getBoundingClientRect();
+    const { zoom } = this.view;
+    this.cancelAnimation();
+    this.view = { zoom, x: width / 2 - worldX * zoom, y: height / 2 - worldY * zoom };
+    this.apply();
+  }
+
   /** Frames all given rectangles. */
   fit(rects: Rect[], animate = true): void {
     if (rects.length === 0) return;
