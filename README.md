@@ -39,7 +39,7 @@ Built with [Vite](https://vite.dev) and vanilla TypeScript. No framework, no run
 | Action | How |
 | --- | --- |
 | Autosave | Automatic; the working copy lives in IndexedDB and resumes on your next visit |
-| File menu | New, Save (<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>S</kbd>), Save as… (<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd>), Load… |
+| File menu | New (<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Alt</kbd>+<kbd>N</kbd>), Save (<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>S</kbd>), Save as… (<kbd>Ctrl</kbd>/<kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd>), Load… |
 | Export / Import | Download the workspace as a JSON file, or open one; you can also drop a file anywhere on the page |
 | Copy for Agent | Copies the pages and relationships to the clipboard, ready to paste into an AI assistant |
 

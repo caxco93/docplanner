@@ -14,7 +14,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <div class="menu">
       <button id="menu-file" class="menu-button" aria-haspopup="menu" aria-expanded="false">File</button>
       <div class="menu-list" role="menu" hidden>
-        <button id="new" role="menuitem">New</button>
+        <button id="new" role="menuitem">New<kbd>Ctrl/Cmd+Alt+N</kbd></button>
         <button id="save" role="menuitem">Save<kbd>Ctrl/Cmd+S</kbd></button>
         <button id="save-as" role="menuitem">Save as…<kbd>Ctrl/Cmd+Shift+S</kbd></button>
         <button id="load" role="menuitem">Load…</button>
@@ -293,9 +293,15 @@ addEventListener('beforeunload', (e) => {
 });
 
 document.addEventListener('keydown', (e) => {
-  if (!(e.metaKey || e.ctrlKey) || e.altKey || e.key.toLowerCase() !== 's') return;
-  e.preventDefault();
-  void (e.shiftKey ? saveAs() : save());
+  if (!(e.metaKey || e.ctrlKey)) return;
+  // Plain Ctrl/Cmd+N belongs to the browser (new window), so New uses Alt as well; e.code because Alt+N types a dead key on macOS.
+  if (e.altKey && e.code === 'KeyN') {
+    e.preventDefault();
+    newWorkspace();
+  } else if (!e.altKey && e.key.toLowerCase() === 's') {
+    e.preventDefault();
+    void (e.shiftKey ? saveAs() : save());
+  }
 });
 
 // Dropping a workspace file anywhere on the page imports it.
