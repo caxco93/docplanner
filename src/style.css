@@ -28,6 +28,7 @@ body,
   --vy: 0px;
   --vz: 1;
   position: fixed;
+  z-index: 0; /* keeps the pages in their own stacking context, below the toolbar's menus */
   inset: var(--toolbar-height) 0 0 0;
   overflow: clip; /* unlike hidden, never scrolled by caret/focus */
   background-color: var(--bg);
@@ -294,6 +295,20 @@ body,
 
 .menu {
   position: relative;
+}
+
+/* The File button reads as a menu-bar label rather than a toolbar button. */
+.toolbar .menu-button {
+  border: 0;
+  background: transparent;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+
+.toolbar .menu-button:hover,
+.toolbar .menu-button[aria-expanded='true'] {
+  background: rgba(0, 0, 0, 0.08);
 }
 
 .menu-list {
