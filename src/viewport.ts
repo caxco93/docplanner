@@ -3,10 +3,6 @@ import type { Rect, View } from './model.ts';
 const MIN_ZOOM = 0.1;
 const MAX_ZOOM = 3;
 const MARGIN = 60;
-const SPACE_PAN_WINDOW_MS = 500;
-
-const isEditable = (t: EventTarget | null) =>
-  t instanceof HTMLElement && (t.isContentEditable || t instanceof HTMLInputElement);
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
@@ -14,10 +10,6 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
 export class Viewport {
   view: View;
   private animation = 0;
-  private spaceTimer = 0;
-  private panArmed = false;
-  private spaceLive = false;
-  private spacePanned = false;
 
   constructor(
     private readonly el: HTMLElement,
@@ -28,7 +20,6 @@ export class Viewport {
     this.view = { ...view };
     this.apply();
     this.bind();
-    this.bindSpaceToPan();
   }
 
   setView(view: View): void {
@@ -160,8 +151,7 @@ export class Viewport {
 
     this.el.addEventListener('pointerdown', (e) => {
       const onPage = (e.target as HTMLElement).closest('.page');
-      if (!(e.button === 0 && (!onPage || this.panArmed)) && e.button !== 1) return;
-      if (this.panArmed) this.spacePanned = true;
+      if (!(e.button === 0 && !onPage) && e.button !== 1) return;
       e.preventDefault();
       e.stopPropagation(); // wins over page controls (drag bar, tags, text selection)
       (document.activeElement as HTMLElement | null)?.blur();
@@ -184,47 +174,5 @@ export class Viewport {
       this.el.addEventListener('pointerup', up);
       this.el.addEventListener('pointercancel', up);
     }, true);
-  }
-
-  /**
-   * Pressing space opens a SPACE_PAN_WINDOW_MS window in which a left-drag pans, even over a page.
-   * The space itself is held back during the window; if no drag started it is typed once the window
-   * closes (or on release, for a tap) and from then on repeats behave normally.
-   */
-  private bindSpaceToPan(): void {
-    const typeSpace = () => {
-      if (isEditable(document.activeElement)) document.execCommand('insertText', false, ' ');
-    };
-    const closeWindow = () => {
-      clearTimeout(this.spaceTimer);
-      this.spaceTimer = 0;
-      this.panArmed = false;
-      this.el.classList.remove('pan-ready');
-    };
-    window.addEventListener('keydown', (e) => {
-      if (e.code !== 'Space' || e.ctrlKey || e.metaKey || e.altKey) return;
-      if (e.repeat) {
-        if (!this.spaceLive && isEditable(e.target)) e.preventDefault();
-        return;
-      }
-      this.spaceLive = false;
-      this.spacePanned = false;
-      if (isEditable(e.target)) e.preventDefault();
-      this.panArmed = true;
-      this.el.classList.add('pan-ready');
-      this.spaceTimer = window.setTimeout(() => {
-        closeWindow();
-        if (this.spacePanned) return;
-        this.spaceLive = true;
-        typeSpace();
-      }, SPACE_PAN_WINDOW_MS);
-    });
-    window.addEventListener('keyup', (e) => {
-      if (e.code !== 'Space') return;
-      const tap = this.spaceTimer !== 0 && !this.spacePanned;
-      closeWindow();
-      if (tap && isEditable(e.target)) typeSpace();
-    });
-    window.addEventListener('blur', closeWindow);
   }
 }

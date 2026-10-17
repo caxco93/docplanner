@@ -39,17 +39,6 @@ body,
   touch-action: none;
 }
 
-.viewport.pan-ready,
-.viewport.pan-ready .page,
-.viewport.pan-ready .mention {
-  cursor: grab;
-}
-
-.viewport.pan-ready .page-body,
-.viewport.pan-ready .page-title {
-  user-select: none;
-}
-
 .viewport.panning *,
 .viewport.panning,
 .viewport.panning .page,

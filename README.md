@@ -29,7 +29,6 @@ Built with [Vite](https://vite.dev) and vanilla TypeScript. No framework, no run
 | Action | How |
 | --- | --- |
 | Pan | Drag the background, or scroll |
-| Pan over a page | Press <kbd>Space</kbd> and drag within 500ms |
 | Zoom | Pinch, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> + scroll, or the − / + buttons |
 | Reset view | Reset Camera |
 | Open / close everything | Expand All / Contract All |
