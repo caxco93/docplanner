@@ -1,5 +1,6 @@
 import type { Autocomplete, Suggestion } from './autocomplete.ts';
 import { rank } from './fuzzy.ts';
+import { buildLine, markCaretLine, restyle } from './markdown.ts';
 import type { DocRecord, Rect, Segment, Store } from './model.ts';
 
 /** `@name` not glued to a preceding word character (so e-mail addresses are left alone). */
@@ -177,24 +178,20 @@ export class PageView {
 
   private render(): void {
     const { store } = this.host;
-    const frag = document.createDocumentFragment();
-    let trailingBreak = false;
+    const lines: Node[][] = [[]];
     for (const seg of this.doc.content) {
-      trailingBreak = false;
       if (typeof seg === 'string') {
         seg.split('\n').forEach((part, i) => {
-          if (i > 0) frag.append(document.createElement('br'));
-          if (part) frag.append(part);
+          if (i > 0) lines.push([]);
+          if (part) lines[lines.length - 1].push(document.createTextNode(part));
         });
-        trailingBreak = seg.endsWith('\n');
       } else {
         const target = store.get(seg.mention);
-        frag.append(target ? createMention(target.id, target.title) : '@?');
+        lines[lines.length - 1].push(target ? createMention(target.id, target.title) : document.createTextNode('@?'));
       }
     }
-    // A final <br> alone does not render an empty line, so add a placeholder.
-    if (trailingBreak) frag.append(document.createElement('br'));
-    this.body.replaceChildren(frag);
+    this.body.replaceChildren(...lines.map(buildLine));
+    restyle(this.body);
   }
 
   private bindTitle(): void {
@@ -216,9 +213,12 @@ export class PageView {
     body.addEventListener('input', () => {
       this.suggestionsDismissed = false;
       this.convertMentions(true);
+      restyle(this.body);
+      markCaretLine(this.body);
       this.commit();
       this.updateSuggestions();
     });
+    document.addEventListener('selectionchange', () => markCaretLine(body));
     body.addEventListener('keydown', (e) => this.handleSuggestionKey(e));
     // Caret moves that are not typing (arrows, clicks) can enter or leave an `@name`.
     body.addEventListener('keyup', (e) => {
@@ -228,6 +228,8 @@ export class PageView {
     body.addEventListener('blur', () => {
       this.host.autocomplete.hide();
       this.convertMentions(false);
+      restyle(this.body);
+      markCaretLine(this.body);
       this.commit();
     });
     body.addEventListener('paste', (e) => {
