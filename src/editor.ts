@@ -9,6 +9,8 @@ const MENTION_PATTERN = /(?<![\p{L}\p{N}_@])@([\p{L}\p{N}_-]+)/gu;
 /** An `@` with a (possibly empty) partial name, ending at the caret. */
 const TRIGGER_PATTERN = /(?<![\p{L}\p{N}_@])@([\p{L}\p{N}_-]*)$/u;
 const MAX_SUGGESTIONS = 8;
+/** How soon after an auto-added bullet marker a second Enter takes it back out. */
+const BULLET_UNDO_WINDOW_MS = 1000;
 
 interface Trigger {
   node: Text;
@@ -99,8 +101,8 @@ export class PageView {
   private readonly next: HTMLButtonElement;
   /** Set when the suggestions were closed with Escape; cleared by the next keystroke. */
   private suggestionsDismissed = false;
-  /** Set when Enter just added a bullet marker; cleared by the next keystroke. */
-  private bulletContinued = false;
+  /** When Enter just added a bullet marker (0 if not); cleared by the next keystroke. */
+  private bulletContinuedAt = 0;
 
   constructor(
     readonly doc: DocRecord,
@@ -369,18 +371,23 @@ export class PageView {
 
   /**
    * Enter at the end of a bullet item starts the next item with a fresh `- `. Escape straight
-   * afterwards takes that marker back out, leaving a plain empty line.
+   * afterwards, or Enter within a second, takes that marker back out, leaving a plain empty line.
    */
   private handleBulletKey(e: KeyboardEvent): void {
-    const continued = this.bulletContinued;
-    this.bulletContinued = false;
+    const continuedAt = this.bulletContinuedAt;
+    this.bulletContinuedAt = 0;
     if (e.isComposing || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return;
-    if (e.key === 'Enter' && atEndOfBulletItem(this.body)) {
+    const undoable = continuedAt > 0 && atEmptyBulletItem(this.body);
+    if (e.key === 'Enter' && undoable && Date.now() - continuedAt <= BULLET_UNDO_WINDOW_MS) {
+      e.preventDefault();
+      document.execCommand('delete');
+      document.execCommand('delete');
+    } else if (e.key === 'Enter' && atEndOfBulletItem(this.body)) {
       e.preventDefault();
       document.execCommand('insertParagraph');
       document.execCommand('insertText', false, '- ');
-      this.bulletContinued = true;
-    } else if (e.key === 'Escape' && continued && atEmptyBulletItem(this.body)) {
+      this.bulletContinuedAt = Date.now();
+    } else if (e.key === 'Escape' && undoable) {
       e.preventDefault();
       document.execCommand('delete');
       document.execCommand('delete');
