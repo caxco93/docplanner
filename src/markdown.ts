@@ -195,15 +195,22 @@ export function markCaretLine(body: HTMLElement): void {
   active?.setAttribute('data-caret', '');
 }
 
-/** The line holding a collapsed caret that sits at its very end, if any. */
-function lineWithCaretAtEnd(body: HTMLElement): HTMLElement | null {
+/** The line holding a collapsed caret, if any. */
+function lineOfCaret(body: HTMLElement): HTMLElement | null {
   const sel = window.getSelection();
   if (!sel?.isCollapsed || !sel.anchorNode || !body.contains(sel.anchorNode)) return null;
   let line: Node | null = sel.anchorNode;
   while (line && line.parentNode !== body) line = line.parentNode;
-  if (!(line instanceof HTMLElement)) return null;
+  return line instanceof HTMLElement ? line : null;
+}
+
+/** The line holding a collapsed caret that sits at its very end, if any. */
+function lineWithCaretAtEnd(body: HTMLElement): HTMLElement | null {
+  const sel = window.getSelection();
+  const line = lineOfCaret(body);
+  if (!sel || !line) return null;
   const tail = document.createRange();
-  tail.setStart(sel.anchorNode, sel.anchorOffset);
+  tail.setStart(sel.anchorNode!, sel.anchorOffset);
   tail.setEnd(line, line.childNodes.length);
   return tail.toString() === '' ? line : null;
 }
@@ -219,6 +226,15 @@ export function atEndOfBulletItem(body: HTMLElement): boolean {
 export function atEmptyBulletItem(body: HTMLElement): boolean {
   const text = lineWithCaretAtEnd(body)?.textContent ?? '';
   return BULLET.test(text) && text.length === BULLET.exec(text)![0].length;
+}
+
+/** Keeps the caret after the marker of an empty bullet line, so typing never lands before the `- `. */
+export function keepCaretAfterMarker(body: HTMLElement): void {
+  const line = lineOfCaret(body);
+  const text = line?.textContent ?? '';
+  if (!line || !BULLET.test(text) || text.length !== BULLET.exec(text)![0].length) return;
+  const offset = caretOffset(line);
+  if (offset !== null && offset < text.length) restoreCaret(line, text.length);
 }
 
 /** Brings the body into line-per-<div> shape and applies the markdown styling to every line. */

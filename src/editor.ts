@@ -1,6 +1,6 @@
 import type { Autocomplete, Suggestion } from './autocomplete.ts';
 import { rank } from './fuzzy.ts';
-import { atEmptyBulletItem, atEndOfBulletItem, buildLine, markCaretLine, restyle } from './markdown.ts';
+import { atEmptyBulletItem, atEndOfBulletItem, buildLine, keepCaretAfterMarker, markCaretLine, restyle } from './markdown.ts';
 import type { DocRecord, Rect, Segment, Store } from './model.ts';
 
 /** `@name` not glued to a preceding word character (so e-mail addresses are left alone). */
@@ -222,7 +222,10 @@ export class PageView {
       this.commit();
       this.updateSuggestions();
     });
-    document.addEventListener('selectionchange', () => markCaretLine(body));
+    document.addEventListener('selectionchange', () => {
+      keepCaretAfterMarker(body);
+      markCaretLine(body);
+    });
     body.addEventListener('keydown', (e) => {
       this.handleSuggestionKey(e);
       if (!e.defaultPrevented) this.handleBulletKey(e);
