@@ -195,6 +195,32 @@ export function markCaretLine(body: HTMLElement): void {
   active?.setAttribute('data-caret', '');
 }
 
+/** The line holding a collapsed caret that sits at its very end, if any. */
+function lineWithCaretAtEnd(body: HTMLElement): HTMLElement | null {
+  const sel = window.getSelection();
+  if (!sel?.isCollapsed || !sel.anchorNode || !body.contains(sel.anchorNode)) return null;
+  let line: Node | null = sel.anchorNode;
+  while (line && line.parentNode !== body) line = line.parentNode;
+  if (!(line instanceof HTMLElement)) return null;
+  const tail = document.createRange();
+  tail.setStart(sel.anchorNode, sel.anchorOffset);
+  tail.setEnd(line, line.childNodes.length);
+  return tail.toString() === '' ? line : null;
+}
+
+/** True when the caret is at the end of a bullet line that has text after its marker. */
+export function atEndOfBulletItem(body: HTMLElement): boolean {
+  const line = lineWithCaretAtEnd(body);
+  const text = line?.textContent ?? '';
+  return line?.classList.contains('md-li') === true && text.length > (BULLET.exec(text)?.[0].length ?? 0);
+}
+
+/** True when the caret is right after the marker of an otherwise empty bullet line. */
+export function atEmptyBulletItem(body: HTMLElement): boolean {
+  const text = lineWithCaretAtEnd(body)?.textContent ?? '';
+  return BULLET.test(text) && text.length === BULLET.exec(text)![0].length;
+}
+
 /** Brings the body into line-per-<div> shape and applies the markdown styling to every line. */
 export function restyle(body: HTMLElement): void {
   if (!isCanonical(body)) canonicalise(body);

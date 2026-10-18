@@ -1,6 +1,6 @@
 import type { Autocomplete, Suggestion } from './autocomplete.ts';
 import { rank } from './fuzzy.ts';
-import { buildLine, markCaretLine, restyle } from './markdown.ts';
+import { atEmptyBulletItem, atEndOfBulletItem, buildLine, markCaretLine, restyle } from './markdown.ts';
 import type { DocRecord, Rect, Segment, Store } from './model.ts';
 
 /** `@name` not glued to a preceding word character (so e-mail addresses are left alone). */
@@ -99,6 +99,8 @@ export class PageView {
   private readonly next: HTMLButtonElement;
   /** Set when the suggestions were closed with Escape; cleared by the next keystroke. */
   private suggestionsDismissed = false;
+  /** Set when Enter just added a bullet marker; cleared by the next keystroke. */
+  private bulletContinued = false;
 
   constructor(
     readonly doc: DocRecord,
@@ -219,7 +221,10 @@ export class PageView {
       this.updateSuggestions();
     });
     document.addEventListener('selectionchange', () => markCaretLine(body));
-    body.addEventListener('keydown', (e) => this.handleSuggestionKey(e));
+    body.addEventListener('keydown', (e) => {
+      this.handleSuggestionKey(e);
+      if (!e.defaultPrevented) this.handleBulletKey(e);
+    });
     // Caret moves that are not typing (arrows, clicks) can enter or leave an `@name`.
     body.addEventListener('keyup', (e) => {
       if (!['ArrowUp', 'ArrowDown', 'Enter', 'Tab', 'Escape'].includes(e.key)) this.updateSuggestions();
@@ -360,6 +365,26 @@ export class PageView {
     if (!action || e.isComposing) return;
     e.preventDefault();
     action();
+  }
+
+  /**
+   * Enter at the end of a bullet item starts the next item with a fresh `- `. Escape straight
+   * afterwards takes that marker back out, leaving a plain empty line.
+   */
+  private handleBulletKey(e: KeyboardEvent): void {
+    const continued = this.bulletContinued;
+    this.bulletContinued = false;
+    if (e.isComposing || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.key === 'Enter' && atEndOfBulletItem(this.body)) {
+      e.preventDefault();
+      document.execCommand('insertParagraph');
+      document.execCommand('insertText', false, '- ');
+      this.bulletContinued = true;
+    } else if (e.key === 'Escape' && continued && atEmptyBulletItem(this.body)) {
+      e.preventDefault();
+      document.execCommand('delete');
+      document.execCommand('delete');
+    }
   }
 
   /** Replaces the `@query` before the caret with a tag for the chosen page, followed by a space. */
