@@ -280,6 +280,70 @@ body,
   text-align: center;
 }
 
+/* Live markdown: the markers stay visible in the text and are only styled. */
+.md-bold {
+  font-weight: 700;
+}
+
+/* Markers show only on the line holding the caret. */
+.md-mark {
+  display: none;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+[data-caret] > .md-mark {
+  display: inline;
+}
+
+.page-body > div {
+  min-height: 1lh;
+}
+
+.md-h2,
+.md-h3,
+.md-h4,
+.md-h5,
+.md-h6 {
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.md-h2 {
+  font-size: 28px;
+}
+
+.md-h3 {
+  font-size: 24px;
+}
+
+.md-h4 {
+  font-size: 20px;
+}
+
+.md-h5 {
+  font-size: 18px;
+}
+
+.md-li {
+  position: relative;
+  padding-left: 1.2em;
+}
+
+.md-li::before {
+  content: '•';
+  position: absolute;
+  left: 0.3em;
+}
+
+.md-li[data-caret] {
+  text-indent: -1.2em;
+}
+
+.md-li[data-caret]::before {
+  content: none;
+}
+
 .mention {
   color: var(--accent);
   background: var(--accent-soft);
